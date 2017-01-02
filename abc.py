@@ -114,11 +114,16 @@ class ABC(object):
     def selection(self):
         'selection by scout bees and recruiting'
         # self.beta * pref / self.H + self.gamma
-        # assign EmployedBees to ScoutBees equally
+        arg = np.argsort(self.ScoutBees.dot(self.profit))
+
         arr = np.zeros(self.EmployedBees.shape, dtype=bool)
-        for i in range(self.employed):
-            ScoutIdx = i % self.scout
-            arr[i] = self.ScoutBees[ScoutIdx]
+        region = np.arange(1, 1+self.scout) * self.beta / self.H + self.gamma
+        region = [np.sum(region[0:i]) for i in range(1, self.scout+1)]
+        region = np.array(list(map(int, region)))
+
+        for j in range(self.employed):
+            idx = np.argmax(j < region)
+            arr[j] = self.ScoutBees[arg[idx]]
 
         return arr
 
@@ -203,7 +208,7 @@ if __name__ == '__main__':
         l.append(b)
     else:
         l = np.array(l)
-        
+
     pr = l.dot(abc.profit)
     pr = (l.dot(abc.weight) <= abc.C) * pr
     idx = np.argmax(pr)
