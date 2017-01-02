@@ -8,7 +8,7 @@ class ABC(object):
         'set datasize, data(problem) and set parameters for ABC'
         self.size = size
         self.getdata()
-        self.set_params(maxiter=1)
+        self.set_params()
 
     def getdata(self):
         'set a problem'
@@ -18,7 +18,7 @@ class ABC(object):
 
     def set_params(self, maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5):
         'set parameters'
-        self.maxIter = 10
+        self.maxIter = maxiter
         self.employed = bees[0]
         self.onlooker = bees[1]
         self.scout = bees[2]
@@ -33,13 +33,13 @@ class ABC(object):
         '''return initial answer for this KP
         return matrix(the number of bees x self.size)
         '''
-        relation = self.profit / self.weight
+        self.relation = self.profit / self.weight
         T = np.sum(self.weight)
-        prob = self.C / T * relation / np.mean(relation)
+        prob = self.C / T * self.relation / np.mean(self.relation)
 
         def modify():
             'in x, discard the worse items'
-            tmp = relation * x
+            tmp = self.relation * x
             np.place(tmp, tmp==0.0, np.nan)
             try:
                 idx = np.nanargmin(tmp)
@@ -50,7 +50,7 @@ class ABC(object):
 
         xs = []
         for i in range(self.employed + self.scout):
-            x = np.random.rand(self.size) < relation
+            x = np.random.rand(self.size) < self.relation
             # print(x)
             W = self.weight.dot(x)
             # print(W)
@@ -131,13 +131,14 @@ class ABC(object):
         changeFlag = np.random.rand(self.employed+self.onlooker, self.size) < p_change
         ans = np.bitwise_xor(changeFlag, arr)
 
+        arg = np.argsort(self.relation)
         # Some bees exceed C.
         for i in range(self.employed+self.onlooker):
             if ans[i].dot(self.profit) > self.C:
                 # ans[i] = np.zeros(self.size, dtype=bool)
 
-                # if the weight exceeds C, it is restored.
-                ans[i] = arr[i]
+                # # if the weight exceeds C, it is restored.
+                # ans[i] = arr[i]
 
                 # # if the weight exceeds C, some bits of it becomes 0.
                 # ans[i] = np.bitwise_and(arr[i], np.random.randint(0, 2, self.size).astype(np.bool))
@@ -147,6 +148,16 @@ class ABC(object):
                 #     changeFlag = np.random.rand(self.size) < p_change
                 #     ans[i] = np.bitwise_xor(changeFlag, arr[i])
                 #     print(ans[i])
+
+                # remove item which have less quaility.
+                idx = 0
+                while ans[i].dot(self.weight) > self.C:
+                    ans[i][arg[idx]] = False
+                    idx += 1
+                #     changeFlag = np.random.rand(self.size) < p_change
+                #     ans[i] = np.bitwise_xor(changeFlag, arr[i])
+                #     print(ans[i])
+
 
 
         return (ans[0:self.employed, :], ans[self.employed:, :])
@@ -208,20 +219,20 @@ class ABC(object):
         print(ave)
 
 if __name__ == '__main__':
-    abc = ABC(40)
+    abc = ABC(15)
     abc.main()
 
     # by checking all patterns, get answer for this problem.
-    # l = []
-    # for i in range(2 ** abc.size):
-    #     b = format(i, '0' + str(abc.size) + 'b')
-    #     b = list(map(int, b))
-    #     l.append(b)
-    # else:
-    #     l = np.array(l)
-    #
-    # pr = l.dot(abc.profit)
-    # pr = (l.dot(abc.weight) <= abc.C) * pr
-    # idx = np.argmax(pr)
-    # print(l[idx])
-    # print(l[idx].dot(abc.profit))
+    l = []
+    for i in range(2 ** abc.size):
+        b = format(i, '0' + str(abc.size) + 'b')
+        b = list(map(int, b))
+        l.append(b)
+    else:
+        l = np.array(l)
+
+    pr = l.dot(abc.profit)
+    pr = (l.dot(abc.weight) <= abc.C) * pr
+    idx = np.argmax(pr)
+    print(l[idx])
+    print(l[idx].dot(abc.profit))
