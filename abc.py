@@ -51,9 +51,8 @@ class ABC(object):
         xs = []
         for i in range(self.employed + self.scout):
             x = np.random.rand(self.size) < self.relation
-            # print(x)
             W = self.weight.dot(x)
-            # print(W)
+            
             while self.C < W:
                 try:
                     W = modify()
@@ -65,7 +64,6 @@ class ABC(object):
 
         xs = np.array(xs, dtype=bool)
 
-        # print(xs.shape)
         return (xs[0:self.scout, :], xs[self.scout:, :])
 
     def evaluation(self):
@@ -88,12 +86,11 @@ class ABC(object):
             ansS.append(bees[idx])
         ansS = np.array(ansS, dtype=bool)
 
-        # print(F)
         # onlooker bees
         F_mu = np.power(F, self.mu)
-        # print(F_mu)
-        Ch = F_mu / np.sum(F_mu)
-        # print(Ch)
+
+        # Ch = F_mu / np.sum(F_mu)
+
         bound = [np.sum(F_mu[0:i+1])/ np.sum(F_mu) for i in range(F_mu.size)]
         bound = np.array(bound)
         # print(bound)
@@ -140,28 +137,11 @@ class ABC(object):
         # Some bees exceed C.
         for i in range(self.employed+self.onlooker):
             if ans[i].dot(self.profit) > self.C:
-                # ans[i] = np.zeros(self.size, dtype=bool)
-
-                # # if the weight exceeds C, it is restored.
-                # ans[i] = arr[i]
-
-                # # if the weight exceeds C, some bits of it becomes 0.
-                # ans[i] = np.bitwise_and(arr[i], np.random.randint(0, 2, self.size).astype(np.bool))
-
-                # # update ans[i] while it exceeds C
-                # while ans[i].dot(self.profit) > self.C:
-                #     changeFlag = np.random.rand(self.size) < p_change
-                #     ans[i] = np.bitwise_xor(changeFlag, arr[i])
-                #     print(ans[i])
-
                 # remove item which have less quaility.
                 idx = 0
                 while ans[i].dot(self.weight) > self.C:
                     ans[i][arg[idx]] = False
                     idx += 1
-                #     changeFlag = np.random.rand(self.size) < p_change
-                #     ans[i] = np.bitwise_xor(changeFlag, arr[i])
-                #     print(ans[i])
 
 
 
@@ -173,9 +153,6 @@ class ABC(object):
 
         # step2
         self.ScoutBees, self.EmployedBees = self.initAns()
-        # print(self.ScoutBees)
-        # print(self.EmployedBees)
-        # input()
 
         best_solution = []
         ave = []
@@ -183,37 +160,17 @@ class ABC(object):
         while True:
             # step3 (OnLookerBees take an action, watching EmployedBees/ScoutBees behavior. Decide ScoutBees here.)
             self.OnLookerBees, self.ScoutBees = self.evaluation()
-            # print("step3")
-            # print(self.OnLookerBees)
-            # print(self.EmployedBees)
-            # print(self.ScoutBees)
-            # input()
-
             # step4 (Register)
             bees = np.concatenate((self.EmployedBees, self.OnLookerBees, self.ScoutBees), axis=0)
             best_solution.append(bees[np.argmax(bees.dot(self.profit))])
             ave.append(np.mean(bees.dot(self.profit)))
-            # print("step4")
-            # print(self.OnLookerBees.shape)
-            # print(self.EmployedBees.shape)
-            # print(self.ScoutBees.shape)
             # step5 (assign EmployedBees to ScoutBees)
             self.EmployedBees = self.selection()
-            # print("step5")
-            # print(self.OnLookerBees.shape)
-            # print(self.EmployedBees.shape)
-            # print(self.ScoutBees.shape)
-
             # step6
             if iter == self.maxIter:
                 break
             # step7 (EmployedBees/OnLookerBees search around there.)
             self.EmployedBees, self.OnLookerBees = self.search(iter)
-            # print("step7")
-            # print(self.OnLookerBees)
-            # print(self.EmployedBees)
-            # print(self.ScoutBees)
-
             # step8
             iter += 1
 
