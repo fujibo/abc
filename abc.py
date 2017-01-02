@@ -18,7 +18,7 @@ class ABC(object):
 
     def set_params(self, maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5):
         'set parameters'
-        self.maxIter = 2
+        self.maxIter = 10
         self.employed = bees[0]
         self.onlooker = bees[1]
         self.scout = bees[2]
@@ -135,8 +135,19 @@ class ABC(object):
         for i in range(self.employed+self.onlooker):
             if ans[i].dot(self.profit) > self.C:
                 # ans[i] = np.zeros(self.size, dtype=bool)
+
                 # if the weight exceeds C, it is restored.
                 ans[i] = arr[i]
+
+                # # if the weight exceeds C, some bits of it becomes 0.
+                # ans[i] = np.bitwise_and(arr[i], np.random.randint(0, 2, self.size).astype(np.bool))
+
+                # # update ans[i] while it exceeds C
+                # while ans[i].dot(self.profit) > self.C:
+                #     changeFlag = np.random.rand(self.size) < p_change
+                #     ans[i] = np.bitwise_xor(changeFlag, arr[i])
+                #     print(ans[i])
+
 
         return (ans[0:self.employed, :], ans[self.employed:, :])
 
@@ -151,6 +162,7 @@ class ABC(object):
         # input()
 
         best_solution = []
+        ave = []
         iter = 1
         while True:
             # step3 (OnLookerBees take an action, watching EmployedBees/ScoutBees behavior. Decide ScoutBees here.)
@@ -164,6 +176,7 @@ class ABC(object):
             # step4 (Register)
             bees = np.concatenate((self.EmployedBees, self.OnLookerBees, self.ScoutBees), axis=0)
             best_solution.append(bees[np.argmax(bees.dot(self.profit))])
+            ave.append(np.mean(bees.dot(self.profit)))
             # print("step4")
             # print(self.OnLookerBees.shape)
             # print(self.EmployedBees.shape)
@@ -188,24 +201,27 @@ class ABC(object):
             # step8
             iter += 1
 
-        best_solution = np.array(best_solution)
+        best_solution = np.array(best_solution, dtype=np.int32)
         print(best_solution)
         print(best_solution.dot(self.profit))
+        ave = np.array(ave)
+        print(ave)
 
 if __name__ == '__main__':
-    abc = ABC()
+    abc = ABC(40)
     abc.main()
 
-    l = []
-    for i in range(2 ** abc.size):
-        b = format(i, '0' + str(abc.size) + 'b')
-        b = list(map(int, b))
-        l.append(b)
-    else:
-        l = np.array(l)
-        
-    pr = l.dot(abc.profit)
-    pr = (l.dot(abc.weight) <= abc.C) * pr
-    idx = np.argmax(pr)
-    print(l[idx])
-    print(l[idx].dot(abc.profit))
+    # by checking all patterns, get answer for this problem.
+    # l = []
+    # for i in range(2 ** abc.size):
+    #     b = format(i, '0' + str(abc.size) + 'b')
+    #     b = list(map(int, b))
+    #     l.append(b)
+    # else:
+    #     l = np.array(l)
+    #
+    # pr = l.dot(abc.profit)
+    # pr = (l.dot(abc.weight) <= abc.C) * pr
+    # idx = np.argmax(pr)
+    # print(l[idx])
+    # print(l[idx].dot(abc.profit))
