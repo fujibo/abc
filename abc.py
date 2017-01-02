@@ -18,7 +18,7 @@ class ABC(object):
 
     def set_params(self, maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5):
         'set parameters'
-        self.maxIter = 1
+        self.maxIter = 2
         self.employed = bees[0]
         self.onlooker = bees[1]
         self.scout = bees[2]
@@ -49,7 +49,7 @@ class ABC(object):
             return self.weight.dot(x)
 
         xs = []
-        for i in range(self.employed):
+        for i in range(self.employed + self.scout):
             x = np.random.rand(self.size) < relation
             # print(x)
             W = self.weight.dot(x)
@@ -63,71 +63,149 @@ class ABC(object):
 
             xs.append(x)
 
-        xs = np.array(xs)
+        xs = np.array(xs, dtype=bool)
+
         # print(xs.shape)
-        return xs
+        return (xs[0:self.scout, :], xs[self.scout:, :])
 
     def evaluation(self):
-        'evaluation for employed bees and make onlooker bees'
-        F = self.EmployedBees.dot(self.profit)
+        'evaluation for employed/scout bees and make onlooker/scout bees'
+
+        bees = np.concatenate((self.EmployedBees, self.ScoutBees), axis=0)
+        F = bees.dot(self.profit)
+
+        # scout bees
+        idxs = []
+        ansS = []
+        score = F.copy()
+        score = score.astype(np.float32)
+        for i in range(self.scout):
+            idx = np.nanargmax(score)
+            score[idx] = np.nan
+            idxs.append(idx)
+            # scout bees are not selected by onlooker bees
+            F[idx] = 0
+            ansS.append(bees[idx])
+        ansS = np.array(ansS, dtype=bool)
+
+        # print(F)
+        # onlooker bees
         F_mu = np.power(F, self.mu)
+        # print(F_mu)
         Ch = F_mu / np.sum(F_mu)
         # print(Ch)
-        bound = [np.sum(F_mu[0:i+i])/ np.sum(F_mu) for i in range(F_mu.size)]
+        bound = [np.sum(F_mu[0:i+1])/ np.sum(F_mu) for i in range(F_mu.size)]
         bound = np.array(bound)
         # print(bound)
-        rs = np.random.random(size=F_mu.size)
-        idx = []
+        rs = np.random.random(size=self.onlooker)
+        idxs = []
         for r in rs:
             # the index that becomes true at first indicates region that contains the value
-            idx.append(np.argmax(r < bound))
+            idxs.append(np.argmax(r < bound))
 
-        ans = []
+        ansO = []
         # onlooker bees index
-        for i in idx:
-            ans.append(self.EmployedBees[i])
-        return np.array(ans)
+        for i in idxs:
+            ansO.append(bees[i])
+        ansO = np.array(ansO, dtype=bool)
+        return (ansO, ansS)
 
 
     def selection(self):
-        'selection of scout bees and recruiting'
-        self.beta * pref / self.H + self.gamma
+        'selection by scout bees and recruiting'
+        # self.beta * pref / self.H + self.gamma
+        # assign EmployedBees to ScoutBees equally
+        arr = np.zeros(self.EmployedBees.shape, dtype=bool)
+        for i in range(self.employed):
+            ScoutIdx = i % self.scout
+            arr[i] = self.ScoutBees[ScoutIdx]
+
+        return arr
 
     def search(self, iter):
-        'search neighborhood'
+        'search neighborhood of EmployedBees and OnLookerBees'
         p_change = self.p_min + iter/self.maxIter * (self.p_max - self.p_min)
+        tmp = np.concatenate((self.EmployedBees, self.OnLookerBees), axis=0)
+        arr = tmp.copy()
+
+        changeFlag = np.random.rand(self.employed+self.onlooker, self.size) < p_change
+        ans = np.bitwise_xor(changeFlag, arr)
+
+        # Some bees exceed C.
+        for i in range(self.employed+self.onlooker):
+            if ans[i].dot(self.profit) > self.C:
+                # ans[i] = np.zeros(self.size, dtype=bool)
+                # if the weight exceeds C, it is restored.
+                ans[i] = arr[i]
+
+        return (ans[0:self.employed, :], ans[self.employed:, :])
 
     def main(self):
         'maximize p.dot(x) subject to weight.dot(x) <= C'
         # step1 __init__
 
         # step2
-        self.EmployedBees = self.initAns()
-        print(self.EmployedBees.shape)
-        # print(self.profit)
-        # print(self.weight)
+        self.ScoutBees, self.EmployedBees = self.initAns()
+        # print(self.ScoutBees)
         # print(self.EmployedBees)
-        # print(self.C, ">=", self.EmployedBees.dot(self.weight))
-        # print(self.EmployedBees.dot(self.profit))
+        # input()
 
-        best_soluation = []
+        best_solution = []
         iter = 1
         while True:
-            # step3
-            self.OnLookerBees = self.evaluation()
-            print(self.OnLookerBees.shape)
-            # step4
-            best_soluation.append(self.EmployedBees[np.argmax(self.EmployedBees.dot(self.profit))])
-            # step5
-            self.selection()
+            # step3 (OnLookerBees take an action, watching EmployedBees/ScoutBees behavior. Decide ScoutBees here.)
+            self.OnLookerBees, self.ScoutBees = self.evaluation()
+            # print("step3")
+            # print(self.OnLookerBees)
+            # print(self.EmployedBees)
+            # print(self.ScoutBees)
+            # input()
+
+            # step4 (Register)
+            bees = np.concatenate((self.EmployedBees, self.OnLookerBees, self.ScoutBees), axis=0)
+            best_solution.append(bees[np.argmax(bees.dot(self.profit))])
+            # print("step4")
+            # print(self.OnLookerBees.shape)
+            # print(self.EmployedBees.shape)
+            # print(self.ScoutBees.shape)
+            # step5 (assign EmployedBees to ScoutBees)
+            self.EmployedBees = self.selection()
+            # print("step5")
+            # print(self.OnLookerBees.shape)
+            # print(self.EmployedBees.shape)
+            # print(self.ScoutBees.shape)
+
             # step6
             if iter == self.maxIter:
                 break
-            # step7
-            self.search(iter)
+            # step7 (EmployedBees/OnLookerBees search around there.)
+            self.EmployedBees, self.OnLookerBees = self.search(iter)
+            # print("step7")
+            # print(self.OnLookerBees)
+            # print(self.EmployedBees)
+            # print(self.ScoutBees)
+
             # step8
             iter += 1
+
+        best_solution = np.array(best_solution)
+        print(best_solution)
+        print(best_solution.dot(self.profit))
 
 if __name__ == '__main__':
     abc = ABC()
     abc.main()
+
+    l = []
+    for i in range(2 ** abc.size):
+        b = format(i, '0' + str(abc.size) + 'b')
+        b = list(map(int, b))
+        l.append(b)
+    else:
+        l = np.array(l)
+        
+    pr = l.dot(abc.profit)
+    pr = (l.dot(abc.weight) <= abc.C) * pr
+    idx = np.argmax(pr)
+    print(l[idx])
+    print(l[idx].dot(abc.profit))
