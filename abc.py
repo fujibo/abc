@@ -1,4 +1,6 @@
 import numpy as np
+import itertools
+import time
 
 class ABC(object):
     """docstring for ABC
@@ -52,7 +54,7 @@ class ABC(object):
         for i in range(self.employed + self.scout):
             x = np.random.rand(self.size) < self.relation
             W = self.weight.dot(x)
-            
+
             while self.C < W:
                 try:
                     W = modify()
@@ -181,20 +183,19 @@ class ABC(object):
         print(ave)
 
 if __name__ == '__main__':
-    abc = ABC(15)
+    start = time.time()
+    abc = ABC(20)
     abc.main()
+    print(time.time() - start, "s is taken to solve this KP in ABC algorithm.")
 
+    input('If you want to search answer by checking all patterns, press ENTER.\n')
     # by checking all patterns, get answer for this problem.
-    l = []
-    for i in range(2 ** abc.size):
-        b = format(i, '0' + str(abc.size) + 'b')
-        b = list(map(int, b))
-        l.append(b)
-    else:
-        l = np.array(l)
+    start = time.time()
+    l = np.array(list(itertools.product((0, 1), repeat=20)))
 
     pr = l.dot(abc.profit)
     pr = (l.dot(abc.weight) <= abc.C) * pr
     idx = np.argmax(pr)
+    print(time.time() - start, "s is taken to check all patterns.")
     print(l[idx])
     print(l[idx].dot(abc.profit))
