@@ -183,15 +183,28 @@ class ABC(object):
         print(ave)
 
 if __name__ == '__main__':
+    N = 20
     start = time.time()
-    abc = ABC(20)
+    abc = ABC(N)
     abc.main()
     print(time.time() - start, "s is taken to solve this KP in ABC algorithm.")
 
-    input('If you want to search answer by checking all patterns, press ENTER.\n')
+    # input('If you want to search answer by checking all patterns, press ENTER.\n')
+
     # by checking all patterns, get answer for this problem.
-    start = time.time()
-    l = np.array(list(itertools.product((0, 1), repeat=20)))
+    def makeBin(arr, repeat):
+        if repeat == 1:
+            return arr
+        else:
+            s = arr.shape[0]
+            z = np.hstack((np.zeros((s, 1), dtype=bool), arr))
+            o = np.hstack((np.ones((s, 1), dtype=bool), arr))
+            return makeBin(np.vstack((z, o)), repeat-1)
+
+    # start = time.time()
+    l = makeBin(np.array([[False], [True]]), N)
+    # print(time.time() - start)
+
 
     pr = l.dot(abc.profit)
     pr = (l.dot(abc.weight) <= abc.C) * pr
