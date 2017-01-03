@@ -139,7 +139,7 @@ class ABC(object):
         arg = np.argsort(self.relation)
         # Some bees exceed C.
         for i in range(self.employed+self.onlooker):
-            if ans[i].dot(self.profit) > self.C:
+            if ans[i].dot(self.weight) > self.C:
                 # remove item which have less quaility.
                 idx = 0
                 while ans[i].dot(self.weight) > self.C:
