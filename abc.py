@@ -14,9 +14,9 @@ class ABC(object):
 
     def getdata(self):
         'set a problem'
-        self.profit = np.random.randint(1, 50, self.size)
+        self.profit = np.random.randint(1, 30, self.size)
         self.weight = np.random.randint(1, 30, self.size)
-        self.C = np.random.randint(1 * self.size, 20 * self.size)
+        self.C = np.random.randint(1 * self.size, 10 * self.size)
 
     def set_params(self, maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5):
         'set parameters'
@@ -73,6 +73,7 @@ class ABC(object):
 
         bees = np.concatenate((self.EmployedBees, self.ScoutBees), axis=0)
         F = bees.dot(self.profit)
+        F = F.astype(np.float128)
 
         # scout bees
         idxs = []
@@ -177,38 +178,66 @@ class ABC(object):
             iter += 1
 
         best_solution = np.array(best_solution, dtype=np.int32)
-        print(best_solution)
+        print(best_solution[-1])
         print(best_solution.dot(self.profit))
-        ave = np.array(ave)
-        print(ave)
+        # ave = np.array(ave)
+        # print(ave)
+
+def makeBin(arr, repeat):
+    if repeat == 1:
+        return arr
+    else:
+        s = arr.shape[0]
+        z = np.hstack((np.zeros((s, 1), dtype=bool), arr))
+        o = np.hstack((np.ones((s, 1), dtype=bool), arr))
+        return makeBin(np.vstack((z, o)), repeat-1)
+
+def answer(size, weight, profit, C):
+    if size >= 23:
+        return
+    l = makeBin(np.array([[False], [True]]), size)
+
+    pr = l.dot(profit)
+    pr = (l.dot(weight) <= C) * pr
+    idx = np.argmax(pr)
+    print(l[idx].astype(np.int32))
+    print(l[idx].dot(profit))
 
 if __name__ == '__main__':
-    N = 20
-    start = time.time()
-    abc = ABC(N)
-    abc.main()
-    print(time.time() - start, "s is taken to solve this KP in ABC algorithm.")
+    # N <= 22
+    # N = 22
+    f = open("dataset.txt", "r")
+    for i in range(8):
+        c = int(f.readline())
+        w = f.readline()
+        w = list(map(int, w[1:-2].split(", ")))
+        p = f.readline()
+        p = list(map(int, p[1:-2].split(", ")))
+        ans = f.readline()
+        ans = np.array(list(map(int, ans[2:-2].split("\\n")[:-1])))
 
-    # input('If you want to search answer by checking all patterns, press ENTER.\n')
+        N = len(w)
+        abc = ABC(size=N)
+        abc.weight = np.array(w)
+        abc.profit = np.array(p)
+        abc.C = c
+        abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5)
+        abc.main()
+        # abc.set_params(maxiter=50, bees=(30, 30, 3), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=3)
+        # abc.main()
+        # abc.set_params(maxiter=50, bees=(10, 10, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
+        # abc.main()
+        # abc.set_params(maxiter=50, bees=(3, 3, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
+        # abc.main()
+        # abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=1, beta=-10, gamma=16, H=5)
+        # abc.main()
+        # abc.set_params(maxiter=50, bees=(50, 50, 5), p=(0, 0), mu=3, beta=-10, gamma=16, H=5)
+        # abc.main()
+        # abc.set_params(maxiter=50, bees=(50, 50, 5), p=(1, 1), mu=3, beta=-10, gamma=16, H=5)
+        # abc.main()
 
-    # by checking all patterns, get answer for this problem.
-    def makeBin(arr, repeat):
-        if repeat == 1:
-            return arr
-        else:
-            s = arr.shape[0]
-            z = np.hstack((np.zeros((s, 1), dtype=bool), arr))
-            o = np.hstack((np.ones((s, 1), dtype=bool), arr))
-            return makeBin(np.vstack((z, o)), repeat-1)
-
-    # start = time.time()
-    l = makeBin(np.array([[False], [True]]), N)
-    # print(time.time() - start)
-
-
-    pr = l.dot(abc.profit)
-    pr = (l.dot(abc.weight) <= abc.C) * pr
-    idx = np.argmax(pr)
-    print(time.time() - start, "s is taken to check all patterns.")
-    print(l[idx])
-    print(l[idx].dot(abc.profit))
+        print(ans)
+        print(ans.dot(abc.profit))
+        # input('If you want to search answer by checking all patterns, press ENTER.\n')
+        # by checking all patterns, get answer for this problem.
+        answer(size=N, weight=abc.weight, profit=abc.profit, C=abc.C)
