@@ -179,9 +179,9 @@ class ABC(object):
 
         best_solution = np.array(best_solution, dtype=np.int32)
         print(best_solution[-1])
-        print(best_solution.dot(self.profit))
-        # ave = np.array(ave)
-        # print(ave)
+        print(best_solution.dot(self.profit).tolist())
+        print(ave)
+        ave = np.array(ave)
 
 def makeBin(arr, repeat):
     if repeat == 1:
@@ -201,43 +201,57 @@ def answer(size, weight, profit, C):
     pr = (l.dot(weight) <= C) * pr
     idx = np.argmax(pr)
     print(l[idx].astype(np.int32))
-    print(l[idx].dot(profit))
+    print(l[idx].dot(profit).tolist())
 
 if __name__ == '__main__':
     # N <= 22
     # N = 22
-    f = open("dataset.txt", "r")
-    for i in range(8):
-        c = int(f.readline())
-        w = f.readline()
-        w = list(map(int, w[1:-2].split(", ")))
-        p = f.readline()
-        p = list(map(int, p[1:-2].split(", ")))
-        ans = f.readline()
-        ans = np.array(list(map(int, ans[2:-2].split("\\n")[:-1])))
+    for datanum in range(10):
+        f = open("dataset.txt", "r")
+        for i in range(8):
+            print("problem{}".format(i+1))
+            c = int(f.readline())
+            w = f.readline()
+            w = list(map(int, w[1:-2].split(", ")))
+            p = f.readline()
+            p = list(map(int, p[1:-2].split(", ")))
+            ans = f.readline()
+            ans = np.array(list(map(int, ans[2:-2].split("\\n")[:-1])))
 
-        N = len(w)
-        abc = ABC(size=N)
-        abc.weight = np.array(w)
-        abc.profit = np.array(p)
-        abc.C = c
-        abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5)
-        abc.main()
-        # abc.set_params(maxiter=50, bees=(30, 30, 3), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=3)
-        # abc.main()
-        # abc.set_params(maxiter=50, bees=(10, 10, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
-        # abc.main()
-        # abc.set_params(maxiter=50, bees=(3, 3, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
-        # abc.main()
-        # abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=1, beta=-10, gamma=16, H=5)
-        # abc.main()
-        # abc.set_params(maxiter=50, bees=(50, 50, 5), p=(0, 0), mu=3, beta=-10, gamma=16, H=5)
-        # abc.main()
-        # abc.set_params(maxiter=50, bees=(50, 50, 5), p=(1, 1), mu=3, beta=-10, gamma=16, H=5)
-        # abc.main()
+            N = len(w)
+            abc = ABC(size=N)
+            abc.weight = np.array(w)
+            abc.profit = np.array(p)
+            abc.C = c
+            # the number of bees is small
+            print("param: maxiter=50, bees=(50, 50, 5), H=5")
+            abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5)
+            abc.main()
+            print("param: maxiter=50, bees=(30, 30, 3), H=3")
+            abc.set_params(maxiter=50, bees=(30, 30, 3), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=3)
+            abc.main()
+            print("param: maxiter=50, bees=(10, 10, 1), H=1")
+            abc.set_params(maxiter=50, bees=(10, 10, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
+            abc.main()
+            print("param: maxiter=50, bees=(3, 3, 1), H=1")
+            abc.set_params(maxiter=50, bees=(3, 3, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
+            abc.main()
 
-        print(ans)
-        print(ans.dot(abc.profit))
-        # input('If you want to search answer by checking all patterns, press ENTER.\n')
-        # by checking all patterns, get answer for this problem.
-        answer(size=N, weight=abc.weight, profit=abc.profit, C=abc.C)
+            # employed, onlooker don't work.
+            print("param: p=(4e-2, 12e-2)")
+            abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5)
+            abc.main()
+            print("param: p=(1e-2, 3e-2)")
+            abc.set_params(maxiter=50, bees=(50, 50, 5), p=(1e-2, 3e-2), mu=3, beta=-10, gamma=16, H=5)
+            abc.main()
+            print("param: p=(0, 0)")
+            abc.set_params(maxiter=50, bees=(50, 50, 5), p=(0, 0), mu=3, beta=-10, gamma=16, H=5)
+            abc.main()
+            print("answer")
+            print(ans)
+            print(ans.dot(abc.profit))
+            # input('If you want to search answer by checking all patterns, press ENTER.\n')
+            # by checking all patterns, get answer for this problem.
+            # answer(size=N, weight=abc.weight, profit=abc.profit, C=abc.C)
+        else:
+            f.close()
