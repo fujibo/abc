@@ -68,7 +68,7 @@ class ABC(object):
 
         return (xs[0:self.scout, :], xs[self.scout:, :])
 
-    def evaluation(self):
+    def evaluation(self, iter):
         'evaluation for employed/scout bees and make onlooker/scout bees'
 
         bees = np.concatenate((self.EmployedBees, self.ScoutBees), axis=0)
@@ -76,17 +76,20 @@ class ABC(object):
         F = F.astype(np.float128)
 
         # scout bees
-        idxs = []
         ansS = []
-        score = F.copy()
+        if iter != 1:
+            tmpbees = np.concatenate((bees, self.OnLookerBees), axis=0)
+        else:
+            tmpbees = bees
+        score = tmpbees.dot(self.profit)
         score = score.astype(np.float32)
         for i in range(self.scout):
             idx = np.nanargmax(score)
             score[idx] = np.nan
-            idxs.append(idx)
             # scout bees are not selected by onlooker bees
-            F[idx] = 0
-            ansS.append(bees[idx])
+            if idx < self.employed + self.scout:
+                F[idx] = 0
+            ansS.append(tmpbees[idx])
         ansS = np.array(ansS, dtype=bool)
 
         # onlooker bees
@@ -146,8 +149,6 @@ class ABC(object):
                     ans[i][arg[idx]] = False
                     idx += 1
 
-
-
         return (ans[0:self.employed, :], ans[self.employed:, :])
 
     def main(self):
@@ -162,7 +163,7 @@ class ABC(object):
         iter = 1
         while True:
             # step3 (OnLookerBees take an action, watching EmployedBees/ScoutBees behavior. Decide ScoutBees here.)
-            self.OnLookerBees, self.ScoutBees = self.evaluation()
+            self.OnLookerBees, self.ScoutBees = self.evaluation(iter)
             # step4 (Register)
             bees = np.concatenate((self.EmployedBees, self.OnLookerBees, self.ScoutBees), axis=0)
             best_solution.append(bees[np.argmax(bees.dot(self.profit))])
@@ -227,15 +228,15 @@ if __name__ == '__main__':
             print("param: maxiter=50, bees=(50, 50, 5), H=5")
             abc.set_params(maxiter=50, bees=(50, 50, 5), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=5)
             abc.main()
-            print("param: maxiter=50, bees=(30, 30, 3), H=3")
-            abc.set_params(maxiter=50, bees=(30, 30, 3), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=3)
+            print("param: maxiter=50, bees=(28, 28, 3), H=3")
+            abc.set_params(maxiter=50, bees=(28, 28, 3), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=3)
             abc.main()
-            print("param: maxiter=50, bees=(10, 10, 1), H=1")
-            abc.set_params(maxiter=50, bees=(10, 10, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
+            print("param: maxiter=50, bees=(6, 6, 1), H=1")
+            abc.set_params(maxiter=50, bees=(6, 6, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
             abc.main()
-            print("param: maxiter=50, bees=(3, 3, 1), H=1")
-            abc.set_params(maxiter=50, bees=(3, 3, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
-            abc.main()
+            # print("param: maxiter=50, bees=(3, 3, 1), H=1")
+            # abc.set_params(maxiter=50, bees=(3, 3, 1), p=(4e-2, 12e-2), mu=3, beta=-10, gamma=16, H=1)
+            # abc.main()
 
             # employed, onlooker don't work.
             print("param: p=(4e-2, 12e-2)")
